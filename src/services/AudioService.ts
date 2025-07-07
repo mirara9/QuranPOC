@@ -25,27 +25,34 @@ export class AudioService implements AudioServiceInterface {
 
   async initialize(): Promise<void> {
     try {
+      // Don't create AudioContext here - wait for user gesture
+      console.log('AudioService initialized successfully (AudioContext will be created on first use)');
+    } catch (error) {
+      console.error('Failed to initialize AudioService:', error);
+      throw new Error(`AudioService initialization failed: ${error}`);
+    }
+  }
+
+  private async ensureAudioContext(): Promise<void> {
+    if (!this.audioContext) {
+      console.log('Creating AudioContext after user gesture...');
       this.audioContext = new AudioContext({
         sampleRate: this.config.processingOptions.sampleRate || 44100,
         latencyHint: 'interactive'
       });
 
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
-      }
-
-      // Try to load AudioWorklet, but don't fail if it doesn't work
+      // Try to load AudioWorklet after AudioContext is created
       try {
         await this.loadAudioWorklet();
         console.log('AudioWorklet loaded successfully');
       } catch (workletError) {
         console.warn('AudioWorklet not available, will use fallback processing:', workletError);
       }
-      
-      console.log('AudioService initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize AudioService:', error);
-      throw new Error(`AudioService initialization failed: ${error}`);
+    }
+
+    if (this.audioContext.state === 'suspended') {
+      await this.audioContext.resume();
+      console.log('AudioContext resumed');
     }
   }
 
@@ -75,18 +82,11 @@ export class AudioService implements AudioServiceInterface {
         throw new Error('getUserMedia not supported in this browser');
       }
       
+      // Ensure AudioContext is created and ready (after user gesture)
+      await this.ensureAudioContext();
+      
       this.stream = await navigator.mediaDevices.getUserMedia(this.config.constraints);
       console.log('Microphone access granted, stream obtained');
-      
-      if (!this.audioContext) {
-        throw new Error('AudioContext not initialized');
-      }
-
-      // Resume audio context if suspended
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
-        console.log('AudioContext resumed');
-      }
 
       const source = this.audioContext.createMediaStreamSource(this.stream);
       

@@ -63,7 +63,7 @@ export const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Initialize WaveSurfer
+    // Initialize WaveSurfer without AudioContext initially
     const wavesurfer = WaveSurfer.create({
       container: containerRef.current,
       waveColor: theme.palette.primary.light,
@@ -74,7 +74,6 @@ export const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
       barRadius: 2,
       height,
       normalize: true,
-      backend: 'WebAudio',
       interact: true,
       minPxPerSec: 50,
       plugins: [],
@@ -111,20 +110,8 @@ export const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
       wavesurfer.load(audioUrl);
     } else if (audioBuffer || recording?.audioBuffer) {
       const buffer = audioBuffer || recording!.audioBuffer;
-      // For WaveSurfer v7, we need to convert AudioBuffer to blob/URL
-      const audioContext = new AudioContext();
-      const length = buffer.length;
-      const arrayBuffer = audioContext.createBuffer(buffer.numberOfChannels, length, buffer.sampleRate);
       
-      for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
-        const channelData = arrayBuffer.getChannelData(channel);
-        const bufferChannelData = buffer.getChannelData(channel);
-        for (let i = 0; i < length; i++) {
-          channelData[i] = bufferChannelData[i];
-        }
-      }
-      
-      // Convert to WAV blob and create URL
+      // Convert AudioBuffer to WAV blob without creating new AudioContext
       const wav = audioBufferToWav(buffer);
       const url = URL.createObjectURL(wav);
       wavesurfer.load(url);
