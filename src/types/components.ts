@@ -1,8 +1,8 @@
 import React from 'react';
-import { WaveSurfer } from 'wavesurfer.js';
-import { AudioFeatures, RecordingData } from './audio';
-import { RecognitionResult } from './recognition';
-import { TajweedAnalysisResult } from './tajweed';
+import WaveSurfer from 'wavesurfer.js';
+import { AudioFeatures, RecordingData, AudioServiceConfig } from './audio';
+import { RecognitionResult, RecognitionConfig } from './recognition';
+import { TajweedAnalysisResult, TajweedConfig } from './tajweed';
 
 export interface AudioRecorderProps {
   onRecordingComplete: (data: RecordingData) => void;

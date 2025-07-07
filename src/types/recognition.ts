@@ -1,3 +1,5 @@
+import { AudioFeatures, RecordingData } from './audio';
+
 export interface DTWResult {
   distance: number;
   path: Array<[number, number]>;

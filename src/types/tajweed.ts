@@ -1,3 +1,5 @@
+import { RecordingData } from './audio';
+
 export interface TajweedRule {
   id: string;
   name: string;

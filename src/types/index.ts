@@ -3,6 +3,23 @@ export * from './recognition';
 export * from './tajweed';
 export * from './components';
 
+import { 
+  RecordingData, 
+  AudioServiceConfig, 
+  AudioServiceInterface 
+} from './audio';
+import { 
+  RecognitionTemplate, 
+  RecognitionResult, 
+  RecognitionConfig, 
+  RecognitionServiceInterface 
+} from './recognition';
+import { 
+  TajweedAnalysisResult, 
+  TajweedConfig, 
+  TajweedServiceInterface 
+} from './tajweed';
+
 export interface AppState {
   isRecording: boolean;
   isProcessing: boolean;
