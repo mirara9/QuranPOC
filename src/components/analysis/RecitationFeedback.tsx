@@ -20,7 +20,6 @@ import {
   Divider,
   Tooltip,
   IconButton,
-  useTheme,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
