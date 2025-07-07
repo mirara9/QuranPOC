@@ -58,6 +58,38 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
 
+  // Handle real-time audio processing
+  const handleAudioProcessing = useCallback((message: AudioWorkletMessage) => {
+    if (message.type === 'features' && message.data) {
+      const features = message.data as any;
+      if (features.energy && features.energy.length > 0) {
+        const level = Math.min(100, features.energy[0] * 500);
+        setAudioLevel(level);
+      }
+    }
+  }, []);
+
+  const handleStopRecording = useCallback(async () => {
+    if (!audioServiceRef.current || !isRecording) return;
+
+    try {
+      const recordingData = await audioServiceRef.current.stopRecording();
+      setIsRecording(false);
+      setIsPaused(false);
+      setRecordingTime(0);
+      setAudioLevel(0);
+      setHasRecording(true);
+      startTimeRef.current = null;
+      
+      onRecordingStop?.();
+      onRecordingComplete(recordingData);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to stop recording';
+      setError(errorMessage);
+      onError?.(new Error(errorMessage));
+    }
+  }, [isRecording, onRecordingStop, onRecordingComplete, onError]);
+
   // Initialize audio service
   useEffect(() => {
     const initializeAudioService = async () => {
@@ -122,17 +154,6 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
     };
   }, [onError, handleAudioProcessing]);
 
-  // Handle real-time audio processing
-  const handleAudioProcessing = useCallback((message: AudioWorkletMessage) => {
-    if (message.type === 'features' && message.data) {
-      const features = message.data as any;
-      if (features.energy && features.energy.length > 0) {
-        const level = Math.min(100, features.energy[0] * 500);
-        setAudioLevel(level);
-      }
-    }
-  }, []);
-
   // Update recording time
   useEffect(() => {
     if (isRecording && !isPaused && startTimeRef.current) {
@@ -177,27 +198,6 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
       onRecordingStart?.();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start recording';
-      setError(errorMessage);
-      onError?.(new Error(errorMessage));
-    }
-  };
-
-  const handleStopRecording = async () => {
-    if (!audioServiceRef.current || !isRecording) return;
-
-    try {
-      const recordingData = await audioServiceRef.current.stopRecording();
-      setIsRecording(false);
-      setIsPaused(false);
-      setRecordingTime(0);
-      setAudioLevel(0);
-      setHasRecording(true);
-      startTimeRef.current = null;
-      
-      onRecordingStop?.();
-      onRecordingComplete(recordingData);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to stop recording';
       setError(errorMessage);
       onError?.(new Error(errorMessage));
     }
