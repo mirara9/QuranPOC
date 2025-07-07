@@ -20,7 +20,6 @@ import {
   PlayArrow as PlayArrowIcon,
   Pause as PauseIcon,
   Delete as DeleteIcon,
-  Download as DownloadIcon,
   VolumeUp as VolumeUpIcon,
 } from '@mui/icons-material';
 import { AudioService } from '../../services/AudioService';
@@ -121,7 +120,7 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [onError]);
+  }, [onError, handleAudioProcessing]);
 
   // Handle real-time audio processing
   const handleAudioProcessing = useCallback((message: AudioWorkletMessage) => {
@@ -160,7 +159,7 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isRecording, isPaused, maxDuration]);
+  }, [isRecording, isPaused, maxDuration, handleStopRecording]);
 
   const handleStartRecording = async () => {
     if (!audioServiceRef.current || isInitializing) {

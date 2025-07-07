@@ -7,8 +7,7 @@ export async function extractFeatures(
   const {
     hopSize = 512,
     windowSize = 2048,
-    mfccCoefficients = 13,
-    preEmphasis = 0.97
+    mfccCoefficients = 13
   } = options;
 
   const audioData = audioBuffer.getChannelData(0);

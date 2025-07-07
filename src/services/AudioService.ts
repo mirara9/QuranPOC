@@ -4,8 +4,7 @@ import {
   RecordingData, 
   AudioFeatures, 
   AudioProcessingCallback,
-  AudioWorkletMessage,
-  AudioProcessingOptions
+  AudioWorkletMessage
 } from '../types/audio';
 import { extractFeatures } from '../utils/audioFeatures';
 
