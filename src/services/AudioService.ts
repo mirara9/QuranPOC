@@ -76,15 +76,15 @@ export class AudioService implements AudioServiceInterface {
         }
       }
       
-      // Create AudioContext with matching sample rate
+      // Create AudioContext - let browser choose optimal sample rate
       if (!this.audioContext) {
-        console.log('Creating AudioContext with sample rate:', streamSampleRate);
+        console.log('Creating AudioContext without specifying sample rate');
         this.audioContext = new AudioContext({
-          sampleRate: streamSampleRate,
           latencyHint: 'interactive'
         });
         
         console.log('AudioContext created with sample rate:', this.audioContext.sampleRate);
+        console.log('Stream sample rate:', streamSampleRate);
         
         // Try to load AudioWorklet after AudioContext is created
         try {
@@ -112,10 +112,17 @@ export class AudioService implements AudioServiceInterface {
         await this.setupRealTimeProcessing(source);
       }
 
-      this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType: this.getSupportedMimeType(),
+      const mimeType = this.getSupportedMimeType();
+      const options: MediaRecorderOptions = {
         audioBitsPerSecond: 128000
-      });
+      };
+      
+      // Only add mimeType if it's not empty
+      if (mimeType) {
+        options.mimeType = mimeType;
+      }
+      
+      this.mediaRecorder = new MediaRecorder(this.stream, options);
 
       this.recordedChunks = [];
       
@@ -145,22 +152,54 @@ export class AudioService implements AudioServiceInterface {
       throw new Error('No recording in progress');
     }
 
+    console.log('Stopping recording...');
+
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
+        console.error('Recording stop timeout - forcing cleanup');
+        this.cleanup();
         reject(new Error('Recording stop timeout'));
       }, 5000);
 
-      this.mediaRecorder!.onstop = async () => {
+      // Set up the stop handler before calling stop
+      const handleStop = async () => {
+        console.log('MediaRecorder stop event received');
         clearTimeout(timeout);
+        
+        // Remove the event listener to prevent multiple calls
+        if (this.mediaRecorder) {
+          this.mediaRecorder.onstop = null;
+        }
+        
         try {
           const recordingData = await this.handleRecordingComplete();
           resolve(recordingData);
         } catch (error) {
+          console.error('Error handling recording completion:', error);
+          this.cleanup();
           reject(error);
         }
       };
 
-      this.mediaRecorder!.stop();
+      this.mediaRecorder.onstop = handleStop;
+
+      // Stop the recording
+      try {
+        if (this.mediaRecorder.state === 'recording') {
+          this.mediaRecorder.stop();
+          console.log('MediaRecorder.stop() called');
+        } else {
+          console.log('MediaRecorder state is:', this.mediaRecorder.state);
+          // If not recording, handle immediately
+          handleStop();
+        }
+      } catch (error) {
+        clearTimeout(timeout);
+        console.error('Error stopping MediaRecorder:', error);
+        this.cleanup();
+        reject(error);
+      }
+
       this.isRecording = false;
     });
   }
@@ -310,15 +349,19 @@ export class AudioService implements AudioServiceInterface {
       'audio/ogg;codecs=opus',
       'audio/ogg',
       'audio/wav',
-      'audio/mp4'
+      'audio/mp4',
+      'audio/mpeg',
+      '' // Empty string as last resort
     ];
 
     for (const mimeType of mimeTypes) {
-      if (MediaRecorder.isTypeSupported(mimeType)) {
+      if (mimeType === '' || MediaRecorder.isTypeSupported(mimeType)) {
+        console.log('Using MIME type:', mimeType || 'default');
         return mimeType;
       }
     }
 
+    console.log('Using fallback MIME type: audio/webm');
     return 'audio/webm';
   }
 
@@ -331,24 +374,51 @@ export class AudioService implements AudioServiceInterface {
   }
 
   private cleanup(): void {
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
-      this.stream = null;
-    }
+    console.log('Cleaning up audio resources...');
+    
+    try {
+      if (this.stream) {
+        this.stream.getTracks().forEach(track => {
+          track.stop();
+          console.log('Audio track stopped');
+        });
+        this.stream = null;
+      }
 
-    if (this.workletNode) {
-      this.workletNode.disconnect();
-      this.workletNode = null;
-    }
+      if (this.workletNode) {
+        try {
+          this.workletNode.disconnect();
+          this.workletNode = null;
+          console.log('AudioWorklet disconnected');
+        } catch (e) {
+          console.warn('Error disconnecting worklet:', e);
+        }
+      }
 
-    if (this.analyzerNode) {
-      this.analyzerNode.disconnect();
-      this.analyzerNode = null;
-    }
+      if (this.analyzerNode) {
+        try {
+          this.analyzerNode.disconnect();
+          this.analyzerNode = null;
+          console.log('AnalyserNode disconnected');
+        } catch (e) {
+          console.warn('Error disconnecting analyzer:', e);
+        }
+      }
 
-    this.mediaRecorder = null;
-    this.recordedChunks = [];
-    this.isRecording = false;
+      if (this.mediaRecorder) {
+        this.mediaRecorder.onstop = null;
+        this.mediaRecorder.ondataavailable = null;
+        this.mediaRecorder = null;
+        console.log('MediaRecorder cleaned up');
+      }
+
+      this.recordedChunks = [];
+      this.isRecording = false;
+      
+      console.log('Cleanup completed');
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+    }
   }
 
   destroy(): void {
