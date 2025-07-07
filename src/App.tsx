@@ -9,8 +9,7 @@ import {
   Paper,
   Alert,
   Collapse,
-  Tab,
-  Tabs,
+  Divider,
 } from '@mui/material';
 import theme from './theme';
 import Layout from './components/common/Layout';
@@ -76,7 +75,6 @@ const sampleVerse: QuranVerse = {
 };
 
 function App() {
-  const [currentTab, setCurrentTab] = useState(0);
   const [currentRecording, setCurrentRecording] = useState<RecordingData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<RecitationAnalysis | null>(null);
@@ -125,7 +123,6 @@ function App() {
 
     setIsAnalyzing(true);
     setError(null);
-    setCurrentTab(1); // Switch to results tab
 
     try {
       console.log('Starting fast recitation analysis...');
@@ -168,9 +165,6 @@ function App() {
     }
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setCurrentTab(newValue);
-  };
 
   const handleSettingsChange = (newSettings: Partial<QuranDisplaySettings>) => {
     setDisplaySettings(prev => ({ ...prev, ...newSettings }));
@@ -212,7 +206,7 @@ function App() {
               Quranic Recitation Analysis
             </Typography>
             <Typography variant="h5" color="text.secondary" paragraph>
-              Recite verses with real-time DTW/HMM analysis and detailed Tajweed feedback
+              Read the verse, record your recitation, and get instant feedback on your pronunciation and Tajweed
             </Typography>
           </Box>
 
@@ -227,113 +221,101 @@ function App() {
             </Alert>
           </Collapse>
 
-          {/* Main Navigation Tabs */}
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-            <Tabs value={currentTab} onChange={handleTabChange} aria-label="main navigation">
-              <Tab label="Practice Recitation" />
-              <Tab label="Analysis Results" disabled={!analysisResults && !isAnalyzing} />
-            </Tabs>
-          </Box>
+          {/* Main Content - All in One Section */}
+          <Grid container spacing={3}>
+            {/* Verse Display Section */}
+            <Grid item xs={12}>
+              <QuranDisplay
+                verse={sampleVerse}
+                settings={displaySettings}
+                onSettingsChange={handleSettingsChange}
+                onWordClick={handleWordClick}
+                onPlayVerse={handlePlayVerse}
+                currentWordIndex={currentWordIndex}
+                highlightedWords={highlightedWords}
+                analysisResults={analysisResults || undefined}
+                showSettings={true}
+              />
+            </Grid>
 
-          {/* Tab Content */}
-          {currentTab === 0 && (
-            <Grid container spacing={3}>
-              {/* Verse Display Section */}
-              <Grid item xs={12}>
-                <QuranDisplay
-                  verse={sampleVerse}
-                  settings={displaySettings}
-                  onSettingsChange={handleSettingsChange}
-                  onWordClick={handleWordClick}
-                  onPlayVerse={handlePlayVerse}
-                  currentWordIndex={currentWordIndex}
-                  highlightedWords={highlightedWords}
-                  analysisResults={analysisResults || undefined}
-                  showSettings={true}
+            {/* Recording Section */}
+            <Grid item xs={12} lg={6}>
+              <AudioRecorder
+                onRecordingComplete={handleRecordingComplete}
+                onRecordingStart={handleRecordingStart}
+                onError={handleRecordingError}
+                onAnalyze={handleAnalyze}
+                isAnalyzing={isAnalyzing}
+                maxDuration={300}
+              />
+            </Grid>
+
+            {/* Visualization Section */}
+            <Grid item xs={12} lg={6}>
+              {currentRecording ? (
+                <WaveformVisualizer
+                  recording={currentRecording}
+                  showControls={true}
+                  showTimeline={true}
+                  enableRegions={false}
                 />
-              </Grid>
-
-              {/* Recording Section */}
-              <Grid item xs={12} lg={6}>
-                <AudioRecorder
-                  onRecordingComplete={handleRecordingComplete}
-                  onRecordingStart={handleRecordingStart}
-                  onError={handleRecordingError}
-                  onAnalyze={handleAnalyze}
-                  isAnalyzing={isAnalyzing}
-                  maxDuration={300}
-                />
-              </Grid>
-
-              {/* Visualization Section */}
-              <Grid item xs={12} lg={6}>
-                {currentRecording ? (
-                  <WaveformVisualizer
-                    recording={currentRecording}
-                    showControls={true}
-                    showTimeline={true}
-                    enableRegions={false}
-                  />
-                ) : (
-                  <Paper sx={{ p: 3, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Typography variant="body1" color="text.secondary" textAlign="center">
-                      Start recording to see the waveform visualization
-                    </Typography>
-                  </Paper>
-                )}
-              </Grid>
-
-              {/* Instructions */}
-              <Grid item xs={12}>
-                <Alert severity="info">
-                  <Typography variant="body2">
-                    <strong>Instructions:</strong> Read the verse above, then click the microphone button to record your recitation. 
-                    Speak clearly and maintain a consistent distance from your device. 
-                    After recording, click "Analyze Recitation" to receive detailed feedback.
+              ) : (
+                <Paper sx={{ p: 3, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Typography variant="body1" color="text.secondary" textAlign="center">
+                    Start recording to see the waveform visualization
                   </Typography>
-                </Alert>
-              </Grid>
+                </Paper>
+              )}
             </Grid>
-          )}
 
-          {currentTab === 1 && (
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                {isAnalyzing ? (
-                  <Paper sx={{ p: 4, textAlign: 'center' }}>
-                    <Typography variant="h6" color="primary" gutterBottom>
-                      Analyzing Your Recitation
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" paragraph>
-                      Processing audio and generating feedback... This should complete in 2-3 seconds.
-                    </Typography>
-                    <Box sx={{ mt: 2 }}>
-                      <div>🎵 Analyzing speech quality...</div>
-                      <div>⏱️ Checking timing and pace...</div>
-                      <div>📊 Evaluating pronunciation...</div>
-                    </Box>
-                  </Paper>
-                ) : analysisResults ? (
-                  <RecitationFeedback
-                    analysis={analysisResults}
-                    dtwResults={dtwResults || undefined}
-                    onPlayExample={handlePlayExample}
-                    onRetryWord={handleRetryWord}
-                    onShowLearningMaterial={handleShowLearningMaterial}
-                    showDetailedAnalysis={true}
-                  />
-                ) : (
-                  <Paper sx={{ p: 4, textAlign: 'center' }}>
-                    <Typography variant="h6" gutterBottom>
-                      No Analysis Available
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary">
-                      Please record your recitation first, then click "Analyze Recitation" to see detailed feedback.
-                    </Typography>
-                  </Paper>
-                )}
-              </Grid>
+            {/* Instructions */}
+            <Grid item xs={12}>
+              <Alert severity="info">
+                <Typography variant="body2">
+                  <strong>Instructions:</strong> Read the verse above, then click the microphone button to record your recitation. 
+                  Speak clearly and maintain a consistent distance from your device. 
+                  After recording, click "Analyze Recitation" to receive detailed feedback.
+                </Typography>
+              </Alert>
             </Grid>
+          </Grid>
+
+          {/* Analysis Results Section - Shows Below When Available */}
+          {(analysisResults || isAnalyzing) && (
+            <>
+              <Divider sx={{ my: 4 }} />
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <Typography variant="h4" component="h2" gutterBottom>
+                    Analysis Results
+                  </Typography>
+                  {isAnalyzing ? (
+                    <Paper sx={{ p: 4, textAlign: 'center' }}>
+                      <Typography variant="h6" color="primary" gutterBottom>
+                        Analyzing Your Recitation
+                      </Typography>
+                      <Typography variant="body1" color="text.secondary" paragraph>
+                        Processing audio and generating feedback... This should complete in 2-3 seconds.
+                      </Typography>
+                      <Box sx={{ mt: 2 }}>
+                        <div>🎵 Analyzing speech quality...</div>
+                        <div>⏱️ Checking timing and pace...</div>
+                        <div>📊 Evaluating pronunciation...</div>
+                      </Box>
+                    </Paper>
+                  ) : analysisResults ? (
+                    <RecitationFeedback
+                      analysis={analysisResults}
+                      dtwResults={dtwResults || undefined}
+                      onPlayExample={handlePlayExample}
+                      onRetryWord={handleRetryWord}
+                      onShowLearningMaterial={handleShowLearningMaterial}
+                      showDetailedAnalysis={true}
+                    />
+                  ) : null}
+                </Grid>
+              </Grid>
+            </>
           )}
 
           {/* Features Grid */}
