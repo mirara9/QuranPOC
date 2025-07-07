@@ -8,7 +8,6 @@ import {
   Chip,
   Stack,
   Tooltip,
-  Button,
   Select,
   MenuItem,
   FormControl,
@@ -21,12 +20,9 @@ import {
 import {
   PlayArrow as PlayIcon,
   Pause as PauseIcon,
-  VolumeUp as VolumeIcon,
   Settings as SettingsIcon,
   Bookmark as BookmarkIcon,
   Share as ShareIcon,
-  TextFields as TextFieldsIcon,
-  Translate as TranslateIcon,
 } from '@mui/icons-material';
 import { QuranVerse, QuranWord, QuranDisplaySettings, RecitationAnalysis } from '../../types/quran';
 import { formatArabicForDisplay } from '../../utils/arabicText';

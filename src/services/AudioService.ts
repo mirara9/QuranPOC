@@ -181,15 +181,17 @@ export class AudioService implements AudioServiceInterface {
         }
       };
 
-      this.mediaRecorder.onstop = handleStop;
+      if (this.mediaRecorder) {
+        this.mediaRecorder.onstop = handleStop;
+      }
 
       // Stop the recording
       try {
-        if (this.mediaRecorder.state === 'recording') {
+        if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
           this.mediaRecorder.stop();
           console.log('MediaRecorder.stop() called');
         } else {
-          console.log('MediaRecorder state is:', this.mediaRecorder.state);
+          console.log('MediaRecorder state is:', this.mediaRecorder?.state);
           // If not recording, handle immediately
           handleStop();
         }

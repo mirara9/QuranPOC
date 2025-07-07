@@ -484,8 +484,9 @@ export class RecitationAnalysisService {
 
     // Tajweed recommendations
     if (tajweedErrors.length > 0) {
-      const commonErrorTypes = [...new Set(tajweedErrors.map(e => e.type))];
-      commonErrorTypes.forEach(type => {
+      const errorTypes = tajweedErrors.map(e => e.type);
+      const uniqueErrorTypes = Array.from(new Set(errorTypes));
+      uniqueErrorTypes.forEach(type => {
         recommendations.push(`Review ${type} rules and practice`);
       });
     }
@@ -495,7 +496,7 @@ export class RecitationAnalysisService {
     recommendations.push(...dtwResults.recommendedImprovements.pronunciation);
     recommendations.push(...dtwResults.recommendedImprovements.tajweed);
 
-    return [...new Set(recommendations)]; // Remove duplicates
+    return Array.from(new Set(recommendations)); // Remove duplicates
   }
 
   /**

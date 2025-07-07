@@ -9,7 +9,6 @@ import {
   Paper,
   Alert,
   Collapse,
-  Divider,
   Tab,
   Tabs,
 } from '@mui/material';
@@ -83,7 +82,7 @@ function App() {
   const [analysisResults, setAnalysisResults] = useState<RecitationAnalysis | null>(null);
   const [dtwResults, setDtwResults] = useState<DTWAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [currentWordIndex, setCurrentWordIndex] = useState(-1);
+  const [currentWordIndex] = useState(-1);
   const [highlightedWords, setHighlightedWords] = useState<Set<string>>(new Set());
   
   // Quran display settings

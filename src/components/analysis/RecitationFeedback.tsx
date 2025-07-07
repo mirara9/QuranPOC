@@ -34,8 +34,6 @@ import {
 } from '@mui/icons-material';
 import { 
   RecitationAnalysis, 
-  WordAnalysis, 
-  TajweedError,
   DTWAnalysisResult 
 } from '../../types/quran';
 
@@ -56,7 +54,6 @@ export const RecitationFeedback: React.FC<RecitationFeedbackProps> = ({
   onShowLearningMaterial,
   showDetailedAnalysis = true,
 }) => {
-  const theme = useTheme();
   const [expandedSection, setExpandedSection] = useState<string | false>('overview');
 
   const handleAccordionChange = (panel: string) => (
