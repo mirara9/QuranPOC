@@ -85,6 +85,10 @@ export class AudioService implements AudioServiceInterface {
       // Ensure AudioContext is created and ready (after user gesture)
       await this.ensureAudioContext();
       
+      if (!this.audioContext) {
+        throw new Error('Failed to create AudioContext');
+      }
+      
       this.stream = await navigator.mediaDevices.getUserMedia(this.config.constraints);
       console.log('Microphone access granted, stream obtained');
 
