@@ -33,28 +33,6 @@ export class AudioService implements AudioServiceInterface {
     }
   }
 
-  private async ensureAudioContext(): Promise<void> {
-    if (!this.audioContext) {
-      console.log('Creating AudioContext after user gesture...');
-      this.audioContext = new AudioContext({
-        sampleRate: this.config.processingOptions.sampleRate || 44100,
-        latencyHint: 'interactive'
-      });
-
-      // Try to load AudioWorklet after AudioContext is created
-      try {
-        await this.loadAudioWorklet();
-        console.log('AudioWorklet loaded successfully');
-      } catch (workletError) {
-        console.warn('AudioWorklet not available, will use fallback processing:', workletError);
-      }
-    }
-
-    if (this.audioContext.state === 'suspended') {
-      await this.audioContext.resume();
-      console.log('AudioContext resumed');
-    }
-  }
 
   private async loadAudioWorklet(): Promise<void> {
     if (!this.audioContext) {
@@ -82,15 +60,45 @@ export class AudioService implements AudioServiceInterface {
         throw new Error('getUserMedia not supported in this browser');
       }
       
-      // Ensure AudioContext is created and ready (after user gesture)
-      await this.ensureAudioContext();
-      
-      if (!this.audioContext) {
-        throw new Error('Failed to create AudioContext');
-      }
-      
+      // Get media stream first
       this.stream = await navigator.mediaDevices.getUserMedia(this.config.constraints);
       console.log('Microphone access granted, stream obtained');
+      
+      // Log audio track settings for debugging
+      const audioTrack = this.stream.getAudioTracks()[0];
+      let streamSampleRate = 44100; // default fallback
+      
+      if (audioTrack) {
+        const settings = audioTrack.getSettings();
+        console.log('Audio track settings:', settings);
+        if (settings.sampleRate) {
+          streamSampleRate = settings.sampleRate;
+        }
+      }
+      
+      // Create AudioContext with matching sample rate
+      if (!this.audioContext) {
+        console.log('Creating AudioContext with sample rate:', streamSampleRate);
+        this.audioContext = new AudioContext({
+          sampleRate: streamSampleRate,
+          latencyHint: 'interactive'
+        });
+        
+        console.log('AudioContext created with sample rate:', this.audioContext.sampleRate);
+        
+        // Try to load AudioWorklet after AudioContext is created
+        try {
+          await this.loadAudioWorklet();
+          console.log('AudioWorklet loaded successfully');
+        } catch (workletError) {
+          console.warn('AudioWorklet not available, will use fallback processing:', workletError);
+        }
+      }
+      
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+        console.log('AudioContext resumed');
+      }
 
       const source = this.audioContext.createMediaStreamSource(this.stream);
       

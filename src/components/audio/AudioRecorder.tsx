@@ -117,11 +117,11 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
               echoCancellation: true,
               noiseSuppression: true,
               autoGainControl: true,
-              sampleRate: 44100,
+              // Don't specify sampleRate - let it use the hardware default
             },
           },
           processingOptions: {
-            sampleRate: 44100,
+            // Don't specify sampleRate - will be set based on AudioContext
             bufferSize: 2048,
             hopSize: 512,
             mfccCoefficients: 13,
