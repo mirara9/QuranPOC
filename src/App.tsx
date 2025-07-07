@@ -25,7 +25,7 @@ import {
   RecitationAnalysis,
   DTWAnalysisResult 
 } from './types/quran';
-import { RecitationAnalysisService } from './services/RecitationAnalysisService';
+import { FastAnalysisService } from './services/FastAnalysisService';
 
 // Sample verse data - in production this would come from an API
 const sampleVerse: QuranVerse = {
@@ -97,13 +97,10 @@ function App() {
     highlightDuration: 2000
   });
 
-  // Analysis service instance
-  const [analysisService] = useState(() => new RecitationAnalysisService({
-    minSimilarityThreshold: 60,
-    timingToleranceMs: 500,
-    phonemeWeighting: 0.4,
-    tajweedWeighting: 0.3,
-    enableRealTimeAnalysis: true
+  // Fast analysis service instance
+  const [analysisService] = useState(() => new FastAnalysisService({
+    enableLogging: true,
+    timeoutMs: 3000 // 3 second timeout
   }));
 
   const handleRecordingComplete = (recording: RecordingData) => {
@@ -128,51 +125,43 @@ function App() {
 
     setIsAnalyzing(true);
     setError(null);
-    setCurrentTab(2); // Switch to results tab
+    setCurrentTab(1); // Switch to results tab
 
     try {
-      console.log('Starting recitation analysis...');
+      console.log('Starting fast recitation analysis...');
+      const startTime = Date.now();
       
-      // Perform DTW/HMM analysis using our enhanced service
+      // Perform fast analysis
       const analysis = await analysisService.analyzeRecitation(
         currentRecording.audioBuffer,
         currentRecording.features,
         sampleVerse
       );
 
-      // Create mock DTW results for demonstration
-      const mockDtwResults: DTWAnalysisResult = {
-        alignmentScore: analysis.overallScore,
-        timingAccuracy: analysis.timingAccuracy,
-        phonemeAccuracy: analysis.phonemeAccuracy,
-        detectedPhonemes: ['b', 'i', 's', 'm', 'i', 'l', 'l', 'a', 'h'],
-        confidenceScores: [0.9, 0.85, 0.92, 0.78, 0.88, 0.91, 0.87, 0.83, 0.95],
-        warping: {
-          referencePath: Array.from({ length: 20 }, (_, i) => i),
-          queryPath: Array.from({ length: 20 }, (_, i) => i + Math.random() * 0.5 - 0.25),
-          distance: 0.15
-        },
-        recommendedImprovements: {
-          timing: ['Maintain steady pace throughout the verse'],
-          pronunciation: ['Focus on clear consonant articulation'],
-          tajweed: ['Practice proper elongation of Alif letters']
-        }
-      };
+      // Generate DTW results for compatibility
+      const dtwResults = analysisService.generateDTWResults(
+        currentRecording.features, 
+        analysis.overallScore
+      );
+
+      const duration = Date.now() - startTime;
+      console.log(`Analysis completed in ${duration}ms`);
 
       setAnalysisResults(analysis);
-      setDtwResults(mockDtwResults);
+      setDtwResults(dtwResults);
 
       // Highlight words based on analysis
       const wordsToHighlight = new Set(
         analysis.wordAnalysis
-          .filter(wa => wa.confidence < 0.8)
+          .filter(wa => wa.confidence < 0.7)
           .map(wa => wa.wordId)
       );
       setHighlightedWords(wordsToHighlight);
 
-      console.log('Analysis completed successfully');
+      console.log('Analysis completed successfully:', analysis);
     } catch (err) {
-      setError('Analysis failed. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
+      setError(`${errorMessage}. Please try recording again.`);
       console.error('Analysis error:', err);
     } finally {
       setIsAnalyzing(false);
@@ -241,8 +230,7 @@ function App() {
           {/* Main Navigation Tabs */}
           <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
             <Tabs value={currentTab} onChange={handleTabChange} aria-label="main navigation">
-              <Tab label="Verse Display" />
-              <Tab label="Recording" />
+              <Tab label="Practice Recitation" />
               <Tab label="Analysis Results" disabled={!analysisResults && !isAnalyzing} />
             </Tabs>
           </Box>
@@ -250,6 +238,7 @@ function App() {
           {/* Tab Content */}
           {currentTab === 0 && (
             <Grid container spacing={3}>
+              {/* Verse Display Section */}
               <Grid item xs={12}>
                 <QuranDisplay
                   verse={sampleVerse}
@@ -263,11 +252,7 @@ function App() {
                   showSettings={true}
                 />
               </Grid>
-            </Grid>
-          )}
 
-          {currentTab === 1 && (
-            <Grid container spacing={3}>
               {/* Recording Section */}
               <Grid item xs={12} lg={6}>
                 <AudioRecorder
@@ -298,12 +283,12 @@ function App() {
                 )}
               </Grid>
 
-              {/* Recording Instructions */}
+              {/* Instructions */}
               <Grid item xs={12}>
                 <Alert severity="info">
                   <Typography variant="body2">
-                    <strong>Instructions:</strong> Click the microphone button to start recording your recitation of 
-                    "Bismillahi r-rahmani r-rahim". Speak clearly and maintain a consistent distance from your device. 
+                    <strong>Instructions:</strong> Read the verse above, then click the microphone button to record your recitation. 
+                    Speak clearly and maintain a consistent distance from your device. 
                     After recording, click "Analyze Recitation" to receive detailed feedback.
                   </Typography>
                 </Alert>
@@ -311,7 +296,7 @@ function App() {
             </Grid>
           )}
 
-          {currentTab === 2 && (
+          {currentTab === 1 && (
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 {isAnalyzing ? (
@@ -320,12 +305,12 @@ function App() {
                       Analyzing Your Recitation
                     </Typography>
                     <Typography variant="body1" color="text.secondary" paragraph>
-                      Using DTW and HMM algorithms to analyze pronunciation, timing, and Tajweed compliance...
+                      Processing audio and generating feedback... This should complete in 2-3 seconds.
                     </Typography>
                     <Box sx={{ mt: 2 }}>
-                      <div>🎵 Processing audio features...</div>
-                      <div>🔍 Performing DTW alignment...</div>
-                      <div>📊 Analyzing Tajweed rules...</div>
+                      <div>🎵 Analyzing speech quality...</div>
+                      <div>⏱️ Checking timing and pace...</div>
+                      <div>📊 Evaluating pronunciation...</div>
                     </Box>
                   </Paper>
                 ) : analysisResults ? (
