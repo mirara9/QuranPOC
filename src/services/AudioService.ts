@@ -34,7 +34,13 @@ export class AudioService implements AudioServiceInterface {
         await this.audioContext.resume();
       }
 
-      await this.loadAudioWorklet();
+      // Try to load AudioWorklet, but don't fail if it doesn't work
+      try {
+        await this.loadAudioWorklet();
+        console.log('AudioWorklet loaded successfully');
+      } catch (workletError) {
+        console.warn('AudioWorklet not available, will use fallback processing:', workletError);
+      }
       
       console.log('AudioService initialized successfully');
     } catch (error) {
@@ -62,10 +68,24 @@ export class AudioService implements AudioServiceInterface {
     }
 
     try {
+      console.log('Requesting microphone access with constraints:', this.config.constraints);
+      
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('getUserMedia not supported in this browser');
+      }
+      
       this.stream = await navigator.mediaDevices.getUserMedia(this.config.constraints);
+      console.log('Microphone access granted, stream obtained');
       
       if (!this.audioContext) {
         throw new Error('AudioContext not initialized');
+      }
+
+      // Resume audio context if suspended
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+        console.log('AudioContext resumed');
       }
 
       const source = this.audioContext.createMediaStreamSource(this.stream);

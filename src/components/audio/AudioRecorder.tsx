@@ -97,13 +97,18 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
       setError(null);
 
       try {
-        // Check microphone permissions
-        const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-        setPermissionStatus(result.state);
-
-        result.addEventListener('change', () => {
+        // Check microphone permissions - some browsers don't support this API
+        try {
+          const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
           setPermissionStatus(result.state);
-        });
+
+          result.addEventListener('change', () => {
+            setPermissionStatus(result.state);
+          });
+        } catch (permError) {
+          console.log('Permissions API not supported, will request on recording start');
+          setPermissionStatus('prompt');
+        }
 
         // Create audio service config
         const config: AudioServiceConfig = {
@@ -183,7 +188,12 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
   }, [isRecording, isPaused, maxDuration, handleStopRecording]);
 
   const handleStartRecording = async () => {
-    if (!audioServiceRef.current || isInitializing) {
+    if (isInitializing) {
+      setError('Audio service is still initializing...');
+      return;
+    }
+
+    if (!audioServiceRef.current) {
       setError('Audio service not ready');
       return;
     }
@@ -191,15 +201,31 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
     try {
       setError(null);
       setHasRecording(false);
+      
+      // Request microphone permission explicitly
+      console.log('Requesting microphone access...');
       await audioServiceRef.current.startRecording();
+      
       setIsRecording(true);
       setRecordingTime(0);
+      setPermissionStatus('granted');
       startTimeRef.current = Date.now();
       onRecordingStart?.();
+      
+      console.log('Recording started successfully');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to start recording';
-      setError(errorMessage);
-      onError?.(new Error(errorMessage));
+      console.error('Recording start failed:', err);
+      
+      // Handle permission denied
+      if (err instanceof Error && err.message.includes('Permission denied')) {
+        setPermissionStatus('denied');
+        setError('Microphone access denied. Please allow microphone access and try again.');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to start recording';
+        setError(errorMessage);
+      }
+      
+      onError?.(new Error(err instanceof Error ? err.message : 'Failed to start recording'));
     }
   };
 
@@ -286,7 +312,7 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
                   color="primary"
                   size="large"
                   onClick={handleStartRecording}
-                  disabled={isInitializing || permissionStatus === 'denied'}
+                  disabled={isInitializing}
                   sx={{
                     width: 80,
                     height: 80,
@@ -367,8 +393,17 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
           </Box>
         )}
 
+        {/* Loading State */}
+        {isInitializing && (
+          <Alert severity="info" variant="outlined">
+            <Typography variant="body2">
+              Initializing audio service... Please wait.
+            </Typography>
+          </Alert>
+        )}
+
         {/* Instructions */}
-        {!isRecording && !hasRecording && (
+        {!isRecording && !hasRecording && !isInitializing && (
           <Alert severity="info" variant="outlined">
             <Typography variant="body2">
               Click the microphone button to start recording your Quranic recitation. 
