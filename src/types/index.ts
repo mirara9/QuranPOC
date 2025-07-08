@@ -1,8 +1,3 @@
-export * from './audio';
-export * from './recognition';
-export * from './tajweed';
-export * from './components';
-
 import { 
   RecordingData, 
   AudioServiceConfig, 
@@ -19,6 +14,11 @@ import {
   TajweedConfig, 
   TajweedServiceInterface 
 } from './tajweed';
+
+export * from './audio';
+export * from './recognition';
+export * from './tajweed';
+export * from './components';
 
 export interface AppState {
   isRecording: boolean;
