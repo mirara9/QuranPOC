@@ -198,10 +198,16 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
       return;
     }
 
+    // Reset all states before starting
+    setError(null);
+    setHasRecording(false);
+    setIsRecording(false);
+    setIsPaused(false);
+    setRecordingTime(0);
+    setAudioLevel(0);
+    startTimeRef.current = null;
+
     try {
-      setError(null);
-      setHasRecording(false);
-      
       // Request microphone permission explicitly
       console.log('Requesting microphone access...');
       await audioServiceRef.current.startRecording();
@@ -215,6 +221,13 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
       console.log('Recording started successfully');
     } catch (err) {
       console.error('Recording start failed:', err);
+      
+      // Reset recording state on error
+      setIsRecording(false);
+      setIsPaused(false);
+      setRecordingTime(0);
+      setAudioLevel(0);
+      startTimeRef.current = null;
       
       // Handle permission denied
       if (err instanceof Error && err.message.includes('Permission denied')) {
@@ -386,7 +399,10 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
               variant="outlined"
               color="primary"
               size="large"
-              onClick={() => setHasRecording(false)}
+              onClick={() => {
+                setHasRecording(false);
+                setError(null);
+              }}
             >
               New Recording
             </Button>

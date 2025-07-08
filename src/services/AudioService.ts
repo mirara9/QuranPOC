@@ -417,7 +417,8 @@ export class AudioService implements AudioServiceInterface {
       this.recordedChunks = [];
       this.isRecording = false;
       
-      console.log('Cleanup completed');
+      // Don't null out audioContext here - keep it for reuse
+      console.log('Cleanup completed (AudioContext preserved for reuse)');
     } catch (error) {
       console.error('Error during cleanup:', error);
     }
